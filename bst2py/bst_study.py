@@ -1,4 +1,3 @@
-from datetime import datetime
 from util import read_mat
 from typing import List
 
@@ -30,7 +29,8 @@ class BstStudy:
 
 if __name__ == "__main__":
     path = \
-        "/mnt/3b5a15cf-20ff-4840-8d84-ddbd428344e9/ALAB1/rg/bs_db/Loca_intra_AUDI/data/HEJ_Subject01/1/brainstormstudy.mat"
+        "/mnt/3b5a15cf-20ff-4840-8d84-ddbd428344e9/ALAB1/rg/bs_db/" \
+        "Loca_intra_AUDI/data/HEJ_Subject01/1/brainstormstudy.mat"
 
     brainstorm_study = BstStudy(path)
 
