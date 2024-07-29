@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import List
+
 from sklearn.model_selection import train_test_split
 import mne
 from scipy import signal
@@ -87,7 +89,9 @@ def print_distribution(y) -> None:
     print(f'Total: {len(y)}')
 
 
-def graph_distribution(y_train: np.ndarray, y_test: np.ndarray = None, class_labels: np.ndarray = None) -> plt.Figure:
+def graph_distribution(y_train: np.ndarray, y_test: np.ndarray = None):
+
+    class_indexes = np.unique(np.concatenate((y_train, y_test)))
 
     train_classes, train_count = np.unique(y_train, return_counts=True)
     test_classes, test_count = np.unique(y_test, return_counts=True)
@@ -108,9 +112,18 @@ def graph_distribution(y_train: np.ndarray, y_test: np.ndarray = None, class_lab
     plt.ylabel("Count")
     plt.legend(loc='lower right')
     plt.title("Class distribution")
-    plt.xticks(ticks=[i for i in range(len(class_labels))], labels=class_labels, rotation=0)
+    plt.xticks(ticks=[i for i in range(len(class_indexes))], rotation=0)
+
+    plt.title("Classes Distribution")
+    plt.tight_layout()
 
     return fig
+
+
+def create_class_label_index_mapping_file(class_labels: List[str], filepath: str):
+    f = open(filepath, "w")
+    for index, label in enumerate(class_labels):
+        f.write(f"{index},{label}\n")
 
 
 if __name__ == '__main__':
