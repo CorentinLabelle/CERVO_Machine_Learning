@@ -18,7 +18,7 @@ def parse_command_line() -> str:
 
 if __name__ == "__main__":
     DEFAULT_INPUT_FILE = \
-        "/configuration_files/sequence_input.ini"
+        "configuration_files/arthur_sequenceness.ini"
 
     sequenceness_input_file_path = parse_command_line()
     if sequenceness_input_file_path is None:
@@ -51,7 +51,6 @@ if __name__ == "__main__":
     y = y[:5]
     if label_starting_at_1:
         y = y - 1
-    sequence_length = y.shape[1]
 
     # Load pipeline
     results = read_pkl.read(results_path)
@@ -62,7 +61,7 @@ if __name__ == "__main__":
     training_output: TrainingOutput = dico
     trained_pipeline = training_output.trained_pipeline
 
-    outputs = sequenceness_fct(
+    outputs = time_sequenceness(
         trained_pipeline, data_trials, y,
         compression_factors=compression_factors, frame_1=start_sample, frame_2=end_sample)
 

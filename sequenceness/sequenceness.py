@@ -16,7 +16,7 @@ from sequenceness.sequenceness_output import SequencenessOutput
 from models.linear_models.linear_models import BaseLinearPipeline
 
 
-def sequenceness_fct(
+def time_sequenceness(
         trained_pipeline: BaseLinearPipeline,
         data_trials: List[BstDataTrial], y: np.ndarray,
         compression_factors: List[int] = None,
@@ -35,17 +35,18 @@ def sequenceness_fct(
     X = np.array([data_trial.get_raw_data(keep_all_channel=False) for data_trial in data_trials])
 
     # Slice times
-    X = process_data.slice_array(X, axis=2, index_1=frame_1, index_2=frame_2)
+    if frame_1 is not None or frame_2 is not None:
+        X = process_data.slice_array(X, axis=2, index_1=frame_1, index_2=frame_2)
 
     outputs = []
     for compression_factor in tqdm(compression_factors):
 
         output = SequencenessOutput(
-            possible_sequences=possible_sequences,
-            compression_factor=compression_factor,
-            expected_sequences=y,
-            frames=(frame_1, frame_2),
-            data_trial_filepaths=data_trial_paths
+           possible_sequences=possible_sequences,
+           compression_factor=compression_factor,
+           expected_sequences=y,
+           frames=(frame_1, frame_2),
+           data_trial_filepaths=data_trial_paths
         )
 
         end_frame = X.shape[axis]
@@ -73,6 +74,14 @@ def sequenceness_fct(
         outputs.append(output)
 
     return outputs
+
+
+def pac_sequenceness(
+        trained_pipeline: BaseLinearPipeline,
+        data_trials: List[BstDataTrial], y: np.ndarray,
+        compression_factors: List[int] = None,
+        frame_1: int = None, frame_2: int = None, axis: int = 2):
+    pass
 
 
 def __predict_probabilities_of_all_possible_sequences__(probabilities):
@@ -133,7 +142,7 @@ if __name__ == '__main__':
     y2 = np.array([1, 2, 4])
     y = np.stack([y1, y2])
 
-    output = sequenceness_fct(pip, X, y)
+    output = time_sequenceness(pip, X, y)
     save_pkl.save(output, "../models/linear_models/output.pkl")
     save_mat.save(output, "../models/linear_models/output.mat")
 
