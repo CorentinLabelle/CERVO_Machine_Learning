@@ -29,6 +29,11 @@ def join_path(*args) -> str:
     return path
 
 
+def sort_list_in_alpha_num_order(list_to_sort: list) -> list:
+    sorted_indexes = alpha_num_sorted_indexes(list_to_sort)
+    return reorder_list_with_indexes(list_to_sort, sorted_indexes)
+
+
 def alpha_num_sorted_indexes(list_to_sort: list) -> list:
     """
         Sort a list in the way that humans expect.
@@ -67,8 +72,7 @@ def reorder_list_with_indexes(list_to_reorder: list, indexes: list) -> list:
 
 def list_directory_content(directory: str) -> List[str]:
     content = os.listdir(directory)
-    sorted_indexes = alpha_num_sorted_indexes(content)
-    sorted_content = reorder_list_with_indexes(content, sorted_indexes)
+    sorted_content = sort_list_in_alpha_num_order(content)
     return sorted_content
 
 
@@ -90,7 +94,6 @@ def find_with_patterns(directory: str, pattern: str) -> List[str]:
     directory = pathlib.Path(directory)
     content = list(directory.glob(pattern))
     content = [str(c) for c in content]
-    sorted_index = alpha_num_sorted_indexes(content)
-    sorted_content = reorder_list_with_indexes(content, sorted_index)
+    sorted_content = sort_list_in_alpha_num_order(content)
     return sorted_content
 
