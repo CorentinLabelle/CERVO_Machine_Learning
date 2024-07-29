@@ -22,8 +22,7 @@ def data_trials_to_x_y_labels(data_trials: List[bst_data_trial.BstDataTrial]) ->
     class_labels = list(set(class_labels))
 
     # Mapping of class labels to class indexes
-    sorted_indexes = util.alpha_num_sorted_indexes(class_labels)
-    class_labels = util.reorder_list_with_indexes(class_labels, sorted_indexes)
+    class_labels = util.sort_list_in_alpha_num_order(class_labels)
 
     # Loop over classes
     x = []
@@ -40,16 +39,20 @@ def data_trials_to_x_y_labels(data_trials: List[bst_data_trial.BstDataTrial]) ->
 
 def load_data_trials(imported_data_folder: str, class_folder_names: list = None) -> List[bst_data_trial.BstDataTrial]:
 
-    # If list --> Separated folders
-    if isinstance(class_folder_names, list):
-        data_trials_organized_in_separate_folders = True
-
     # If None --> Detecting if unique folder or separated
-    elif class_folder_names is None:
+    if class_folder_names is None:
         data_trials_organized_in_separate_folders = \
             util.directory_contains_subdirectory(imported_data_folder)
         if data_trials_organized_in_separate_folders:
             class_folder_names = util.list_directory_content(imported_data_folder)
+
+    elif len(class_folder_names) == 1:
+        data_trials_organized_in_separate_folders = False
+        imported_data_folder = util.join_path(imported_data_folder, class_folder_names[0])
+
+    # If list --> Separated folders
+    elif isinstance(class_folder_names, list):
+        data_trials_organized_in_separate_folders = True
 
     # Raise error
     else:
@@ -121,7 +124,8 @@ def __load_files_from_separate_folders__(
     return data_trials
 
 
-def __load_files_from_unique_folder__(imported_data_folder: str, class_name_for_all: str = None) -> List[bst_data_trial.BstDataTrial]:
+def __load_files_from_unique_folder__(imported_data_folder: str, class_name_for_all: str = None)\
+        -> List[bst_data_trial.BstDataTrial]:
     """
     Get all the class labels from a Brainstorm folder organized as such:
     │─── <imported_data_folder>
