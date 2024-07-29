@@ -2,15 +2,42 @@ import copy
 from tqdm import tqdm
 import numpy as np
 import sys
+from enum import Enum
 
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 
-from training.training_output import TrainingOutput
+import training.training_output
+from training.training_output import *
 
 
-def time_generalization(X_train, y_train, X_test, y_test, pipeline, n_splits: int = 5, random_state: int = None):
+
+def basic_cross_val(
+        X_train, y_train, X_test, y_test, pipeline, n_splits: int = 5, random_state: int = None):
+
+    # Cross-validate
+    s_k_fold = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
+    cross_validation_output = cross_validate(pipeline, X_train, y_train, cv=s_k_fold,
+                                             return_estimator=True, return_train_score=True)
+
+    # Test models
+    test_accuracies = list()
+    for trained_pipeline in cross_validation_output['estimator']:
+        test_accuracy = trained_pipeline.score(X_test, y_test)
+        test_accuracies.append(test_accuracy)
+    test_accuracies = np.array(test_accuracies)
+
+    # Store values in a TrainingOutput object
+    output = CrossValidationOutput(
+        cross_validation_output=cross_validation_output,
+        test_accuracies=test_accuracies
+    )
+    return output
+
+
+def time_generalization(
+        X_train, y_train, X_test, y_test, pipeline, n_splits: int = 5, random_state: int = None):
     """
     For each time sample, a model is trained in cross-validation.
     The model is then validated on every time sample of the validation data.
@@ -29,7 +56,8 @@ def time_generalization(X_train, y_train, X_test, y_test, pipeline, n_splits: in
     validation_scores = list()
 
     # Loop over every time sample
-    for iTime_sample in tqdm(range(X_train.shape[2]), file=sys.stdout):
+    # for iTime_sample in tqdm(range(X_train.shape[2]), file=sys.stdout):
+    for iTime_sample in range(X_train.shape[2]):
 
         # Instantiate pipeline
         current_pipeline = copy.deepcopy(pipeline)
@@ -71,46 +99,10 @@ def time_generalization(X_train, y_train, X_test, y_test, pipeline, n_splits: in
     # Pipeline predictions for one time sample as columns
     validation_scores = np.swapaxes(validation_scores, axis1=0, axis2=1)
 
-    # Select best pipeline
-    pipeline_max_accuracy = np.max(validation_scores, axis=0)
-    iBest = np.argmax(pipeline_max_accuracy)
-    best_pipeline = trained_pipelines[iBest]
-
-    output = TrainingOutput()
-    output.time_generalization_matrix = validation_scores
-    output.time_generalization_pipelines = trained_pipelines
-    output.trained_pipeline = best_pipeline
-    output.training_tag = "time_generalization"
-    output.training_title = "Time Generalization"
-    return output
-
-
-def basic_cross_val(X_train, y_train, X_test, y_test, pipeline, n_splits: int = 5, random_state: int = None):
-
-    # Cross-validate
-    s_k_fold = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
-    cross_validation_output = cross_validate(pipeline, X_train, y_train, cv=s_k_fold,
-                                             return_estimator=True, return_train_score=True)
-
-    # Test models
-    test_accuracies = list()
-    for trained_pipeline in cross_validation_output['estimator']:
-        test_accuracy = trained_pipeline.score(X_test, y_test)
-        test_accuracies.append(test_accuracy)
-
-    # Select best pipeline
-    iBest = np.argmax(test_accuracies)
-    best_pipeline = cross_validation_output['estimator'][iBest]
-    test_accuracy = test_accuracies[iBest]
-
-    # Store values in a TrainingOutput object
-    output = TrainingOutput()
-    output.cross_validation_output = cross_validation_output
-    output.test_accuracy = test_accuracy
-    output.trained_pipeline = best_pipeline
-    output.training_tag = "cross_validation"
-    output.training_title = "Cross Validation"
-
+    output = TimeGeneralizationOutput(
+        trained_pipelines=trained_pipelines,
+        validation_scores=validation_scores
+    )
     return output
 
 
