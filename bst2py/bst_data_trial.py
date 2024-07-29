@@ -2,7 +2,6 @@ import numpy as np
 import os
 from typing import List
 
-import util.util
 from util import read_mat
 
 
@@ -29,7 +28,7 @@ class BstDataTrial:
         return self.bad_trial
 
     def get_raw_data(self, keep_all_channel: bool = False) -> np.ndarray:
-        raw_data = read_mat.with_scipy(self.data_trial_path, with_key=False)['F']
+        raw_data = read_mat.read_mat(self.data_trial_path, mat_file_key="F")
         if keep_all_channel:
             return raw_data
         else:
@@ -86,6 +85,7 @@ def __parse_events__(raw_events: np.ndarray) -> dict:
 
 if __name__ == "__main__":
     path = \
-        "/mnt/3b5a15cf-20ff-4840-8d84-ddbd428344e9/ALAB1/rg/bs_db/Loca_intra_AUDI/data/HEJ_Subject01/1/data_1_trial001.mat"
+        "/mnt/3b5a15cf-20ff-4840-8d84-ddbd428344e9/ALAB1/rg/bs_db/" \
+        "Loca_intra_AUDI/data/HEJ_Subject01/1/data_1_trial001.mat"
     data_trial = BstDataTrial(path)
     print(data_trial)
