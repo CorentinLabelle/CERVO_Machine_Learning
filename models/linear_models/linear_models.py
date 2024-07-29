@@ -1,9 +1,9 @@
 import numpy as np
 import itertools
+import matplotlib.pyplot as plt
 
 from sklearn import pipeline
 from sklearn.linear_model import LogisticRegression, RidgeClassifierCV, Perceptron
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import permutation_test_score
@@ -53,7 +53,8 @@ class BaseLinearPipeline(pipeline.Pipeline):
     This class inherits from the sklearn.pipeline.Pipeline class.
     """
 
-    def __init__(self, pre_processing: str, classifier_step: tuple, name: str = 'default_name', parameters: dict = None):
+    def __init__(self, pre_processing: str, classifier_step: tuple,
+                 name: str, parameters: dict = None):
         self.pre_processing = pre_processing
         self.classifier_step = classifier_step
         self.parameters = parameters
@@ -78,6 +79,16 @@ class BaseLinearPipeline(pipeline.Pipeline):
         cm_display = ConfusionMatrixDisplay(confusion_matrix=cm_normalized, display_labels=class_labels)
         cm_display.plot()
         return cm
+
+    def plot_confusion_matrix(self, X, y, filepath: str):
+        y_predicted = self.predict(X)
+        self.confusion_matrix(y, y_predicted)
+        plt.title("Confusion Matrix")
+        plt.tight_layout()
+
+        # Save figure
+        plt.savefig(filepath)
+        plt.close()
 
     def classification_report(self, true_labels, predictions):
         target_names = [str(class_label) for class_label in self.classes_]
@@ -232,18 +243,18 @@ class CustomRidge(BaseLinearPipeline):
 class CustomLogisticRegression(BaseLinearPipeline):
 
     def __init__(self, pre_processing: str, parameters: dict = None, name: str = 'logistic_regression'):
-        classifier_step = ('logistic_regression', LinearModel(LogisticRegression()))
+        classifier_step = ('logistic_regression', LinearModel(LogisticRegression(max_iter=200)))
         super().__init__(pre_processing, classifier_step=classifier_step, name=name, parameters=parameters)
 
-        grid_search_parameters = {
-            'logistic_regression__model__solver': ['lbfgs', 'liblinear', 'newton-cg', 'newton-cholesky', 'sag', 'saga'],
-            'logistic_regression__model__penalty': ['l1', 'l2', 'elasticnet'], # , None],
-            'logistic_regression__model__C': [1, 10],
-            'logistic_regression__model__multi_class': ['auto', 'ovr', 'multinomial'],
-            'logistic_regression__model__dual': [True, False],
-            'logistic_regression__model__l1_ratio': [None, 0.5],
-            'logistic_regression__model__max_iter': [100]
-        }
+        # grid_search_parameters = {
+        #     'logistic_regression__model__solver': ['lbfgs', 'liblinear', 'newton-cg', 'newton-cholesky', 'sag', 'saga'],
+        #     'logistic_regression__model__penalty': ['l1', 'l2', 'elasticnet'],  # , None],
+        #     'logistic_regression__model__C': [1, 10],
+        #     'logistic_regression__model__multi_class': ['auto', 'ovr', 'multinomial'],
+        #     'logistic_regression__model__dual': [True, False],
+        #     'logistic_regression__model__l1_ratio': [None, 0.5],
+        #     'logistic_regression__model__max_iter': [100]
+        # }
         super().__init__(pre_processing, classifier_step=classifier_step, name=name, parameters=parameters)
 
 
@@ -260,7 +271,7 @@ class CustomSVC(BaseLinearPipeline):
 class CustomPerceptron(BaseLinearPipeline):
 
     def __init__(self, pre_processing: str, parameters: dict = None, name: str = 'perceptron'):
-        classifier_step = ('perceptron', LinearModel(Perceptron()))
+        classifier_step = ('perceptron', LinearModel(Perceptron(max_iter=2000)))
         super().__init__(pre_processing, classifier_step=classifier_step, name=name, parameters=parameters)
 
 
@@ -270,7 +281,7 @@ def __loca_audi_logistic_regression():
     model_parameters['logistic_regression__model__C'] = 1
     model_parameters['logistic_regression__model__penalty'] = 'l2'
     model_parameters['logistic_regression__model__multi_class'] = 'auto'
-    return CustomLogisticRegression(parameters=model_parameters, name='log_reg_loca_audi')
+    return CustomLogisticRegression(parameters=model_parameters, name='log_reg_loca_audi', pre_processing="Average")
 
 
 if __name__ == '__main__':
