@@ -3,130 +3,43 @@ import numpy as np
 import seaborn as sn
 import os
 from tqdm import tqdm
+from abc import abstractmethod
+from typing import List
 
 from util import save_mat, util
+from training.training_types import TrainingType
 
 
 class TrainingOutput:
 
     def __init__(self):
+        self.training_type = None
 
         self.subject = None
+        self.i_replication = None
+        self.data_trials_filepaths = None
+        self.channel_indexes = None
+
         self.random_state = None
 
         # Pipeline
         self.trained_pipeline = None
-        self.p_value = None
-
-        # Data
-        self.channel_indexes = None
-        self.data_trials_filepaths = None
-
-        # Cross validation
-        self._cross_validation_output = None
-        self._number_of_folds = None
-        self._standard_deviation_of_validation_accuracy = None
-
-        # Accuracies
+        self.feature_importance = None
         self.training_accuracy = None
         self.validation_accuracy = None
         self.test_accuracy = None
-
-        # Time Generalization
-        self.time_generalization_matrix = None
-        self.time_generalization_pipelines = None
-
-        self.grid_search_output = None
-
-        # Feature Importance
-        self.feature_importance = None
 
         # Permutation
         self.permutation_scores = None
         self.p_value = None
 
-        # Filename when creating figures
-        self._file_name = None
-        self._figure_title = None
+    def get_filename(self) -> str:
+        return f"{self.subject}__rep_{self.i_replication}_{self.training_type.tag()}"
 
-        # Training tag
-        self.training_tag = None
-        self.training_title = None
-
-    def set_p_value(self, X, y):
-        if self.training_tag == 'time_generalization':
-            #trained_pipelines = self.time_generalization_pipelines
-            trained_pipelines = [self.trained_pipeline]
-        else:
-            trained_pipelines = [self.trained_pipeline]
-
-        self.p_value = []
-        print("Calculating p-values")
-        for pipeline in tqdm(trained_pipelines):
-            _, _, p_value = pipeline.calculate_p_value_from_permutations(X, y)
-            self.p_value.append(p_value)
-
-    @property
-    def file_name(self):
-        if self._file_name is None:
-            pipeline_name = self.trained_pipeline.name.title() if self.trained_pipeline is not None else None
-            self._file_name = util.create_filename(
-                (pipeline_name, self.training_tag), '_')
-        return self._file_name
-
-    @file_name.setter
-    def file_name(self, value):
-        self._file_name = value
-
-    @property
-    def figure_title(self):
-        if self._figure_title is None:
-            pipeline_name = self.trained_pipeline.name.title() if self.trained_pipeline is not None else None
-            self._figure_title = util.create_filename(
-                (pipeline_name, self.training_title), ' - ')
-        return self._figure_title
-
-    @figure_title.setter
-    def figure_title(self, value):
-        self._figure_title = value
-
-    @property
-    def cross_validation_output(self):
-        return self._cross_validation_output
-
-    @cross_validation_output.setter
-    def cross_validation_output(self, value):
-        self._cross_validation_output = value
-
-        iBest = np.argmax(self._cross_validation_output['test_score'])
-        self.trained_pipeline = self._cross_validation_output['estimator'][iBest]
-        self.training_accuracy = self._cross_validation_output['train_score'][iBest]
-        self.validation_accuracy = self._cross_validation_output['test_score'][iBest]
-        self._number_of_folds = len(self._cross_validation_output['test_score'])
-
-    @classmethod
-    def filter_list_of_training_outputs(cls, training_outputs, **filters):
-        training_outputs = cls.__convert_to_list(training_outputs)
-
-        filtered_training_outputs = list()
-        for training_output in training_outputs:
-            flag = True
-            for key, value in filters.items():
-                if getattr(training_output, key) != value:
-                    flag = False
-                    break
-            if flag:
-                filtered_training_outputs.append(training_output)
-
-        return filtered_training_outputs
-
-    def create_mat_file_for_nifti(self, filepath: str):
-        if not filepath.endswith('.mat'):
-            filepath += '.mat'
-
-        folder = os.path.dirname(filepath)
+    def create_mat_file_for_nifti(self, folder: str):
         if not os.path.isdir(folder):
             os.mkdir(folder)
+        filepath = os.path.join(folder, f"{self.get_filename()}.mat")
 
         keys_to_keep = ['subject', 'feature_importance', 'channel_indexes']
         training_output_dico = {key: getattr(self, key) for key in keys_to_keep}
@@ -135,6 +48,7 @@ class TrainingOutput:
 
     @classmethod
     def export_to_mat_file(cls, trainings: dict, filepath: str):
+
         def replace_none_with_nan(d):
             """
             Recursively replace None in dictionary with np.nan.
@@ -150,38 +64,72 @@ class TrainingOutput:
                     d[k] = 'Not converted to MAT file.'
             return d
 
-        trainings = replace_none_with_nan(trainings)
+        trainings = replace_none_with_nan(trainings.copy())
         save_mat.save(trainings, filepath)
 
     @classmethod
-    def plot_feature_importance_z_scored(cls, trainings):
-        trainings = cls.__convert_to_list(trainings)
+    def filter_list_of_training_outputs(cls, training_outputs, **filters):
+        training_outputs = cls.__convert_to_list__(training_outputs)
 
-        figure = plt.figure()
-        for training in trainings:
-            plt.plot(training.feature_importance)
+        filtered_training_outputs = list()
+        for training_output in training_outputs:
+            flag = True
+            for key, value in filters.items():
+                if getattr(training_output, key) != value:
+                    flag = False
+                    break
+            if flag:
+                filtered_training_outputs.append(training_output)
 
-        plt.xlabel('Feature')
-        plt.ylabel('Importance')
-        plt.show()
-        return figure
-
-    def plot_p_values(self):
-
-        fig, ax = plt.subplots(figsize=(15, 10))
-        ax.plot(self.p_value, marker="o")
-
-        # Add labels
-        plt.xlabel("trained pipeline")
-        plt.ylabel("P-Value")
-
-        plt.tight_layout()
-        return fig
+        return filtered_training_outputs
 
     @classmethod
-    def plot_accuracies(cls, trainings):
-        trainings = cls.__convert_to_list(trainings)
+    def __convert_to_list__(cls, training):
+        if isinstance(training, TrainingOutput):
+            output = [training]
+        elif isinstance(training, list):
+            output = training
+        else:
+            raise Exception('Unrecognized input!')
+        return output
 
+    @classmethod
+    def list_to_dico(cls, trainings: List["TrainingOutput"]) -> dict:
+        trainings_as_dico = dict()
+        for training in trainings:
+            dico = trainings_as_dico
+            keys = [training.trained_pipeline.name, training.training_type.tag(),
+                    training.subject, f"replication_{training.i_replication}"]
+            for key in keys[:-1]:
+                if key == "":
+                    continue
+                if key not in trainings_as_dico:
+                    dico[key] = dict()
+                dico = dico[key]
+            dico[keys[-1]] = training
+        return trainings_as_dico
+
+
+class CrossValidationOutput(TrainingOutput):
+
+    def __init__(self, cross_validation_output, test_accuracies: np.ndarray):
+        super().__init__()
+        self.training_type = TrainingType.CROSS_VALIDATION
+        self.cross_validation_output = cross_validation_output
+        self.test_accuracies: np.ndarray = test_accuracies
+
+        self.__select_best_pipeline__()
+
+    def __select_best_pipeline__(self):
+        iBest = np.argmax(self.test_accuracies)
+        self.trained_pipeline = self.cross_validation_output['estimator'][iBest]
+        self.training_accuracy = self.cross_validation_output['train_score'][iBest]
+        self.validation_accuracy = self.cross_validation_output['test_score'][iBest]
+        self.test_accuracy = self.test_accuracies[iBest]
+        self.feature_importance = self.trained_pipeline.extract_feature_importance()
+
+    @classmethod
+    def plot_across_subjects(cls, outputs: List["CrossValidationOutput"], filepath: str):
         bar_width = 0.25
         opacity = 0.4
 
@@ -189,12 +137,12 @@ class TrainingOutput:
         metric_colors = ['k', 'b', 'r']
 
         # Remove metric with None value (based on the first training)
-        first_training = trainings[0]
+        first_training = outputs[0]
         metrics = [metric for metric in metrics if getattr(first_training, metric) is not None]
         x_labels = []
 
         fig, ax = plt.subplots(figsize=(15, 10))
-        for iTraining, training in enumerate(trainings):
+        for iTraining, training in enumerate(outputs):
 
             # Get x label for the current training
             subject = getattr(training, 'subject')
@@ -218,59 +166,63 @@ class TrainingOutput:
 
         # Add chance level line
         nb_classes = first_training.trained_pipeline.get_number_of_classes()
-        plt.axhline(y=1/nb_classes, color='k', linestyle='dashed', label='chance level')
+        plt.axhline(y=1 / nb_classes, color='k', linestyle='dashed', label='chance level')
         metrics = ['chance level'] + metrics
 
         # Add legend
         plt.gca().legend(metrics, loc='lower right')
 
         # Add x labels
-        plt.xticks(np.arange(len(trainings)) + bar_width / 2, x_labels, fontsize=10)
+        plt.xticks(np.arange(len(outputs)) + bar_width / 2, x_labels, fontsize=10)
         plt.ylabel('%')
 
         plt.tight_layout()
-        return fig
 
-    def view_time_generalization(self):
-        fig = plt.figure()
+        plt.title("Cross-Validation Accuracies")
+        plt.savefig(filepath)
+
+        plt.close()
+
+
+class TimeGeneralizationOutput(TrainingOutput):
+
+    def __init__(self, trained_pipelines: list, validation_scores: np.ndarray):
+        super().__init__()
+        self.training_type = TrainingType.TIME_GENERALIZATION
+        self.trained_pipelines: list = trained_pipelines
+        self.validation_scores: np.ndarray = validation_scores
+
+        self.__select_best_pipeline__()
+
+    def __select_best_pipeline__(self):
+        iBest = np.argmax(self.validation_scores, axis=0)
+        self.trained_pipeline = self.trained_pipelines[iBest]
+        self.training_accuracy = 0
+        self.validation_accuracy = 0
+        self.feature_importance = self.trained_pipeline.extract_feature_importance()
+
+    def plot(self, folder: str):
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        filepath = os.path.join(folder, f"{self.get_filename()}.png")
+
+        plt.figure()
         ax = sn.heatmap(
-            data=self.time_generalization_matrix, cmap="RdBu_r",
-            vmin=np.min(self.time_generalization_matrix),
-            vmax=np.max(self.time_generalization_matrix))
+            data=self.validation_scores, cmap="RdBu_r",
+            vmin=np.min(self.validation_scores),
+            vmax=np.max(self.validation_scores))
         ax.invert_yaxis()
         plt.xlabel('Trained models')
         plt.ylabel('Frame')
+        plt.title("Some title")
         plt.tight_layout()
-        return fig
+        plt.savefig(filepath)
 
-    def __attribute_to_string(self, attribute: str):
-        attribute_value = getattr(self, attribute)
 
-        s = f'{attribute.replace("_", " ").title().strip()}: '
-        if isinstance(attribute_value, float):
-            s += f'{attribute_value:0.2f}'
-        else:
-            s += f'{attribute_value}'
-        return s + '\n'
+class GridSearchOutput(TrainingOutput):
 
-    @classmethod
-    def __convert_to_list(cls, training):
-        if isinstance(training, TrainingOutput):
-            output = [training]
-        elif isinstance(training, list):
-            output = training
-        else:
-            raise Exception('Unrecognized input!')
-        return output
-
-    def __str__(self):
-        attributes_to_print = \
-            ['subject', 'random_state', '_number_of_folds', 'training_accuracy', 'validation_accuracy',
-             'test_accuracy']
-        s = ''
-        for attribute in attributes_to_print:
-            s += self.__attribute_to_string(attribute)
-        return s
+    def __init__(self):
+        super().__init__()
 
 
 if __name__ == "__main__":
