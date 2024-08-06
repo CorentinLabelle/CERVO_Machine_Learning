@@ -161,7 +161,6 @@ if __name__ == '__main__':
     plt.legend()
     plt.draw()
 
-
     custom_filtered = band_pass_filter(raw_data, 256, high_freq=15)
 
     plt.figure()
@@ -170,6 +169,3 @@ if __name__ == '__main__':
     plt.legend()
     plt.draw()
     plt.show()
-
-
-

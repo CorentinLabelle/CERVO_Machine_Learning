@@ -3,7 +3,7 @@ import os
 
 from bst2py import load_x_y
 from sequenceness.sequenceness import *
-from sequenceness.sequenceness_input import SequencenessInput
+from configuration.sequenceness_configuration import SequencenessConfiguration
 from training.training_output import TrainingOutput
 
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     sequenceness_input_file_path = parse_command_line()
     if sequenceness_input_file_path is None:
         sequenceness_input_file_path = DEFAULT_INPUT_FILE
-    sequenceness_input = SequencenessInput.read(sequenceness_input_file_path)
+    sequenceness_input = SequencenessConfiguration.read(sequenceness_input_file_path)
 
     # MAIN #
 
@@ -72,4 +72,4 @@ if __name__ == "__main__":
     save_mat.save(outputs, os.path.join(output_folder, "sequenceness_output.mat"))
     save_pkl.save(outputs, os.path.join(output_folder, "sequenceness_output.pkl"))
 
-    print("Done")
+    print(f"Output folder: {output_folder}")

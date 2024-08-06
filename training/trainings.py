@@ -1,16 +1,10 @@
 import copy
-from tqdm import tqdm
-import numpy as np
-import sys
-from enum import Enum
 
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 
-import training.training_output
 from training.training_output import *
-
 
 
 def basic_cross_val(
@@ -31,7 +25,7 @@ def basic_cross_val(
     # Store values in a TrainingOutput object
     output = CrossValidationOutput(
         cross_validation_output=cross_validation_output,
-        test_accuracies=test_accuracies
+        test_accuracies=test_accuracies,
     )
     return output
 
