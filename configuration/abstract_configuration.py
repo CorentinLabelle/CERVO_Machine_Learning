@@ -10,7 +10,7 @@ from util import read_mat
 
 
 @dataclass
-class AbstractInput(ABC):
+class AbstractConfiguration(ABC):
 
     @classmethod
     def read(cls, file_path: str):
@@ -32,8 +32,8 @@ class AbstractInput(ABC):
             for second_level_key in second_level_keys:
                 value = dico[first_level_key][second_level_key]
 
-                if isinstance(value, np.ndarray):
-                    value = None
+                if isinstance(value, list):
+                    value = ','.join(value)
 
                 if value is None:
                     continue
@@ -47,7 +47,7 @@ class AbstractInput(ABC):
                     value = [tuple(v.replace(" ", "").split("-")) for v in value]
                 elif value_type == List[int]:
                     value = value.strip().replace(" ", "").split(",")
-                    value = [int(v.strip()) for v in value]
+                    value = [int(float(v.strip())) for v in value]
                 elif value_type == int:
                     value = int(value)
                 elif value_type == float:
@@ -69,9 +69,28 @@ class AbstractInput(ABC):
     @classmethod
     def from_mat_file(cls, mat_filepath: str):
         mat_file = read_mat.read_mat(mat_filepath, with_key=False)
-        mat_file_filtered = {key: value for key, value in mat_file.items() if not key.startswith("__")}
-        return cls.from_dico(mat_file_filtered)
+
+        mat_file = __replace_numpy_in_dictionary__(mat_file)
+
+        return cls.from_dico(mat_file)
 
     @abstractmethod
     def validate(self):
         pass
+
+
+def __replace_numpy_in_dictionary__(dico: dict) -> dict:
+    for k, v in dico.items():
+        if isinstance(v, dict):
+            __replace_numpy_in_dictionary__(v)
+        else:
+            if isinstance(v, np.ndarray):
+                if v.ndim == 0:
+                    v = float(v)
+                else:
+                    v = list(v)
+            if isinstance(v, list):
+                v = [str(i) for i in v]
+                v = ','.join(v)
+            dico[k] = v
+    return dico

@@ -1,15 +1,11 @@
-import configparser
-import os
 from dataclasses import dataclass
 from typing import List
 
-import numpy as np
-
-from util import read_mat, abstract_input
+from configuration.abstract_configuration import AbstractConfiguration
 
 
 @dataclass
-class SequencenessInput(abstract_input.AbstractInput):
+class SequencenessConfiguration(AbstractConfiguration):
     output_folder: str = None
 
     data_folder: str = None
@@ -30,10 +26,8 @@ class SequencenessInput(abstract_input.AbstractInput):
 
 
 if __name__ == "__main__":
-    cfg_file = "../empty_template_config.ini"
+    cfg_file = "../sequence_config_template.ini"
     mat_file = "../ici.mat"
-    ti_1 = SequencenessInput.read(cfg_file)
-    ti_2 = SequencenessInput.read(mat_file)
+    ti_1 = SequencenessConfiguration.read(cfg_file)
+    ti_2 = SequencenessConfiguration.read(mat_file)
     print("done.")
-
-
