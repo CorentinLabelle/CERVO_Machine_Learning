@@ -8,6 +8,7 @@ from typing import List
 from tqdm import tqdm
 
 from bst2py.bst_data_trial import BstDataTrial
+from bst2py.load_x_y import data_trials_to_x_y_labels
 
 sys.path.append('../models/linear_models')
 
@@ -78,10 +79,12 @@ def time_sequenceness(
 
 def pac_sequenceness(
         trained_pipeline: BaseLinearPipeline,
-        data_trials: List[BstDataTrial], y: np.ndarray,
-        compression_factors: List[int] = None,
-        frame_1: int = None, frame_2: int = None, axis: int = 2):
-    pass
+        data_trials: List[BstDataTrial]):
+
+    X, _, _ = data_trials_to_x_y_labels(data_trials)
+    X = X.squeeze()
+    predictions = trained_pipeline.predict(X)
+    return predictions
 
 
 def __predict_probabilities_of_all_possible_sequences__(probabilities):
