@@ -1,16 +1,14 @@
-import configparser
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List
-import numpy as np
 
 from training.trainings import TrainingType
 from models.linear_models.linear_models import PipelineFactory, BaseLinearPipeline
-from util import read_mat, abstract_input
+from configuration.abstract_configuration import AbstractConfiguration
 
 
 @dataclass
-class TrainingInput(abstract_input.AbstractInput):
+class TrainingConfiguration(AbstractConfiguration):
     output_folder: str = None
 
     protocol_directory: str = None
@@ -40,16 +38,13 @@ class TrainingInput(abstract_input.AbstractInput):
     nb_replications: int = 2
     test_size: float = 0.2
     n_splits: int = 5
-    random_state: int = None
+    random_states: List[int] = None
 
     run_permutation: bool = False
     n_permutations: int = None
     permutation_n_splits: int = None
 
     def validate(self):
-
-        if self.subjects_to_keep is None:
-            self.subjects_to_keep = ["*"]
 
         if not isinstance(self.output_folder, str):
             raise Exception(f"'output_folder' has to be a string.")
@@ -60,7 +55,7 @@ class TrainingInput(abstract_input.AbstractInput):
         if not os.path.isdir(self.protocol_directory):
             raise Exception(f"'protocol_directory' does not exists: {self.protocol_directory}.")
 
-        if not isinstance(self.subjects_to_keep, list):
+        if not (self.subjects_to_keep is None or isinstance(self.subjects_to_keep, list)):
             raise Exception(f"'subject_patterns_to_keep' has to be a list.")
 
         if not (self.train_studies is None or isinstance(self.train_studies, list)):
@@ -102,20 +97,10 @@ class TrainingInput(abstract_input.AbstractInput):
             training_types.append(TrainingType.TIME_GENERALIZATION)
         return training_types
 
-    def condition_to_string(self) -> str:
-        if self.condition is None:
-            return ""
-        elif len(self.condition) == 1:
-            return self.condition[0]
-        elif len(self.condition) == 2:
-            return f"{self.condition[0]}_on_{self.condition[1]}"
-        else:
-            raise Exception(f"Invalid number of conditions: {self.condition}")
-
 
 if __name__ == "__main__":
-    cfg_file = "/training/training_input_template/as_training.ini"
+    cfg_file = "/training/training_config_template/as_training.ini"
     mat_file = "../ici.mat"
-    ti_1 = TrainingInput.read(cfg_file)
-    ti_2 = TrainingInput.read(mat_file)
+    ti_1 = TrainingConfiguration.read(cfg_file)
+    ti_2 = TrainingConfiguration.read(mat_file)
     print("done.")
