@@ -23,7 +23,10 @@ def with_h5py(mat_file_path: str):
 def with_mat73(mat_file_path: str, mat_file_key: str = None):
     __check_extension__(mat_file_path)
     file = mat73.loadmat(mat_file_path)
-    return file[mat_file_key]
+    if mat_file_key is None:
+        return file
+    else:
+        return file[mat_file_key]
 
 
 def with_scipy(mat_file_path: str, mat_file_key: str = None, with_key: bool = True):
