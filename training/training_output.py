@@ -2,11 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sn
 import os
-from tqdm import tqdm
-from abc import abstractmethod
 from typing import List
 
-from util import save_mat, util
+from util import save_mat
 from training.training_types import TrainingType
 
 
@@ -24,6 +22,7 @@ class TrainingOutput:
 
         # Pipeline
         self.trained_pipeline = None
+        self.trained_pipeline_name = None
         self.feature_importance = None
         self.training_accuracy = None
         self.validation_accuracy = None
@@ -34,7 +33,10 @@ class TrainingOutput:
         self.p_value = None
 
     def get_filename(self) -> str:
-        return f"{self.subject}__rep_{self.i_replication}_{self.training_type.tag()}"
+        subject = self.subject
+        if self.subject != "":
+            subject += "_"
+        return f"{subject}{self.trained_pipeline_name}_{self.training_type.tag()}_rep_{self.i_replication}"
 
     def create_mat_file_for_nifti(self, folder: str):
         if not os.path.isdir(folder):
@@ -62,6 +64,8 @@ class TrainingOutput:
                     d[k] = replace_none_with_nan(v.__dict__)
                 elif k in ['trained_pipeline', 'estimator', 'time_generalization_pipelines']:
                     d[k] = 'Not converted to MAT file.'
+                elif isinstance(v, TrainingType):
+                    d[k] = v.tag()
             return d
 
         trainings = replace_none_with_nan(trainings.copy())
@@ -103,7 +107,7 @@ class TrainingOutput:
             for key in keys[:-1]:
                 if key == "":
                     continue
-                if key not in trainings_as_dico:
+                if key not in dico:
                     dico[key] = dict()
                 dico = dico[key]
             dico[keys[-1]] = training
@@ -123,6 +127,7 @@ class CrossValidationOutput(TrainingOutput):
     def __select_best_pipeline__(self):
         iBest = np.argmax(self.test_accuracies)
         self.trained_pipeline = self.cross_validation_output['estimator'][iBest]
+        self.trained_pipeline_name = self.trained_pipeline.name
         self.training_accuracy = self.cross_validation_output['train_score'][iBest]
         self.validation_accuracy = self.cross_validation_output['test_score'][iBest]
         self.test_accuracy = self.test_accuracies[iBest]
@@ -197,6 +202,7 @@ class TimeGeneralizationOutput(TrainingOutput):
     def __select_best_pipeline__(self):
         iBest = np.argmax(self.validation_scores, axis=0)
         self.trained_pipeline = self.trained_pipelines[iBest]
+        self.trained_pipeline_name = self.trained_pipeline.name
         self.training_accuracy = 0
         self.validation_accuracy = 0
         self.feature_importance = self.trained_pipeline.extract_feature_importance()
